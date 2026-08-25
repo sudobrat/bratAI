@@ -43,6 +43,11 @@ jobs:
           docker push \
           $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gateway:latest
 
+      - name: Inject Firebase Credentials
+        run: |
+          # This creates the file dynamically in the runner
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > backend/services/auth/serviceAccountKey.json
+
       - name: Build Auth Service
         run: |
           docker build \
