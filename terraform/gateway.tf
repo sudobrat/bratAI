@@ -73,3 +73,7 @@ resource "azurerm_container_app" "gateway" {
     ]
   }
 }
+
+output "gateway_url" {
+  value = "https://${azurerm_container_app.gateway.latest_revision_fqdn}"
+}
