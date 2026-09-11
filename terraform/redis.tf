@@ -5,6 +5,9 @@ resource "azurerm_container_app" "redis" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
+
     container {
       name   = "redis"
       image  = "redis:latest"
@@ -14,9 +17,9 @@ resource "azurerm_container_app" "redis" {
   }
 
   ingress {
-    external_enabled = false
-    target_port      = 6379
-    transport        = "tcp"
+    external_enabled           = false
+    target_port                = 6379
+    transport                  = "tcp"
     allow_insecure_connections = false
 
     traffic_weight {

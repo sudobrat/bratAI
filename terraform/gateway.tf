@@ -33,7 +33,7 @@ resource "azurerm_container_app" "gateway" {
         value = "https://bratai.bharatrajsingal.online"
       }
 
-      
+
       # --- The Switchboard: Pointing to all internal services! ---
       env {
         name  = "AUTH_SERVICE"
@@ -59,7 +59,7 @@ resource "azurerm_container_app" "gateway" {
   }
 
   ingress {
-    external_enabled = true 
+    external_enabled = true
     target_port      = 8000
     traffic_weight {
       percentage      = 100
