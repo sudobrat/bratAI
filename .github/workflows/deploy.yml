@@ -153,7 +153,7 @@ jobs:
 
     deploy-frontend:
         name: "Deploy React Frontend"
-        needs: terraform
+        needs: [terraform, build-and-push]
         runs-on: ubuntu-latest
 
         if: github.event_name == 'push' || github.event.inputs.action == 'apply'
@@ -182,11 +182,16 @@ jobs:
 
             - name: Update GoDaddy DNS
               run: |
-                  curl -X PUT "https://api.godaddy.com/v1/domains/bharatrajsingal.online/records/CNAME/bratai" \
-                  -H "Authorization: sso-key ${{ secrets.GODADDY_PAT }}" \
+                  # Fetch the existing record ID using v3 API
+                  RECORD_ID=$(curl -f -s "https://api.godaddy.com/v3/domains/zones/bharatrajsingal.online/dns-records?type=CNAME&name=bratai" \
+                    -H "Authorization: Bearer ${{ secrets.GODADDY_PAT }}" | jq -r '.items[0].recordId')
+
+                  # Update the record using the fetched ID
+                  curl -f -s --show-error -X PUT "https://api.godaddy.com/v3/domains/zones/bharatrajsingal.online/dns-records/$RECORD_ID" \
+                  -H "Authorization: Bearer ${{ secrets.GODADDY_PAT }}" \
                   -H "Content-Type: application/json" \
-                  -d '[{"data": "${{ needs.terraform.outputs.frontend_hostname }}", "ttl": 600}]'
-                  
+                  -d '{"name": "bratai", "type": "CNAME", "data": "${{ needs.terraform.outputs.frontend_hostname }}", "ttl": 600}'
+
             - name: Log into Azure for Custom Domain Binding
               uses: azure/login@v2
               with:
@@ -194,14 +199,24 @@ jobs:
 
             - name: Wait for DNS and Bind Custom Domain
               run: |
+                  echo "Target CNAME should be: ${{ needs.terraform.outputs.frontend_hostname }}"
                   echo "Waiting for GoDaddy DNS to propagate (this can take a couple of minutes)..."
-                  for i in {1..12}; do
+
+                  for i in {1..30}; do
+                      echo "--- Attempt $i ---"
+                      
+                      # Print the current CNAME record resolving publicly
+                      echo "Current CNAME resolution for bratai.bharatrajsingal.online:"
+                      dig +short CNAME bratai.bharatrajsingal.online
+                      
                       if az staticwebapp hostname set --name bratai-frontend -g bratai-rg --hostname bratai.bharatrajsingal.online; then
                           echo "Successfully bound custom domain!"
                           exit 0
                       fi
-                      echo "DNS not propagated yet, waiting 30 seconds..."
+                      
+                      echo "Azure validation failed. DNS likely not propagated yet. Waiting 30 seconds..."
                       sleep 30
                   done
+
                   echo "Failed to bind custom domain within the time limit. You may need to retry manually later."
                   exit 1
