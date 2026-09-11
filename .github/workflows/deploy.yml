@@ -24,6 +24,7 @@ jobs:
         outputs:
             gateway_url: ${{ steps.tf-out.outputs.url }}
             static_web_app_api_token: ${{ steps.tf-out.outputs.token }}
+            frontend_hostname: ${{ steps.tf-out.outputs.frontend_hostname }}
 
         defaults:
             run:
@@ -70,6 +71,7 @@ jobs:
               run: |
                   echo "url=$(terraform output -raw gateway_url)" >> $GITHUB_OUTPUT
                   echo "token=$(terraform output -raw static_web_app_api_token)" >> $GITHUB_OUTPUT
+                  echo "frontend_hostname=$(terraform output -raw frontend_hostname)" >> $GITHUB_OUTPUT
 
             - name: Terraform Destroy
               if: github.event.inputs.action == 'destroy'
@@ -177,3 +179,29 @@ jobs:
                   app_location: "/frontend" # Where your React app lives
                   api_location: "" # Leave empty since we built our own backend
                   output_location: "dist" # The folder Vite outputs to
+
+            - name: Update GoDaddy DNS
+              run: |
+                  curl -X PUT "https://api.godaddy.com/v1/domains/bharatrajsingal.online/records/CNAME/bratai" \
+                  -H "Authorization: sso-key ${{ secrets.GODADDY_PAT }}" \
+                  -H "Content-Type: application/json" \
+                  -d '[{"data": "${{ needs.terraform.outputs.frontend_hostname }}", "ttl": 600}]'
+                  
+            - name: Log into Azure for Custom Domain Binding
+              uses: azure/login@v2
+              with:
+                  creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+            - name: Wait for DNS and Bind Custom Domain
+              run: |
+                  echo "Waiting for GoDaddy DNS to propagate (this can take a couple of minutes)..."
+                  for i in {1..12}; do
+                      if az staticwebapp hostname set --name bratai-frontend -g bratai-rg --hostname bratai.bharatrajsingal.online; then
+                          echo "Successfully bound custom domain!"
+                          exit 0
+                      fi
+                      echo "DNS not propagated yet, waiting 30 seconds..."
+                      sleep 30
+                  done
+                  echo "Failed to bind custom domain within the time limit. You may need to retry manually later."
+                  exit 1
