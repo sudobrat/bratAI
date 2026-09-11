@@ -14,9 +14,11 @@ resource "azurerm_container_app" "redis" {
   }
 
   ingress {
+    external_enabled = false
+    target_port      = 6379
+    transport        = "tcp"
     allow_insecure_connections = false
-    external_enabled           = false # Internal only!
-    target_port                = 6379
+
     traffic_weight {
       percentage      = 100
       latest_revision = true
