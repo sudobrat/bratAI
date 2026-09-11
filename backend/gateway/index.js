@@ -7,17 +7,17 @@ import cookieParser from "cookie-parser";
 import protect from "./middleware/auth.middleware.js";
 import getCurrentUser from "./controllers/user.controller.js";
 import proxyWithHeaders from "./utils/proxyWithHeaders.js";
-dotenv.config();
+dotenv.config({ override: false });
 
 const PORT = process.env.PORT;
 
 const app = express();
 app.use(morgan("dev"));
 app.use(
-  cors({
-    origin: [process.env.FRONTEND_URL],
-    credentials: true,
-  }),
+    cors({
+        origin: ["https://bratai.bharatrajsingal.online", "http://localhost:5173", process.env.FRONTEND_URL],
+        credentials: true,
+    }),
 );
 app.use(cookieParser());
 
@@ -28,10 +28,10 @@ app.use("/api/billing", protect, proxyWithHeaders(process.env.BILLING_SERVICE));
 app.get("/api/me", protect, getCurrentUser);
 
 app.get("/", (req, res) => {
-  res.json({
-    message: "bratAI Gateway",
-    timestamp: new Date().toISOString(),
-  });
+    res.json({
+        message: "bratAI Gateway",
+        timestamp: new Date().toISOString(),
+    });
 });
 
 app.listen(PORT, () => console.log(`Gateway running on port ${PORT}`));
