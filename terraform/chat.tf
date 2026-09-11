@@ -22,6 +22,8 @@ resource "azurerm_container_app" "chat" {
   }
 
   template {
+    min_replicas = 1
+  max_replicas = 10
     container {
       name   = "chat"
       image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"

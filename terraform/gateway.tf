@@ -17,6 +17,8 @@ resource "azurerm_container_app" "gateway" {
 
 
   template {
+    min_replicas = 1
+    max_replicas = 10
     container {
       name   = "gateway"
       image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"

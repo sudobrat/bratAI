@@ -26,6 +26,8 @@ resource "azurerm_container_app" "billing" {
   }
 
   template {
+    min_replicas = 1
+  max_replicas = 10
     container {
       name   = "billing"
       image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"

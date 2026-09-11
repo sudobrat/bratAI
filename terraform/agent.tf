@@ -47,6 +47,8 @@ resource "azurerm_container_app" "agent" {
   }
 
   template {
+    min_replicas = 1
+  max_replicas = 10
     container {
       name   = "agent"
       image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
