@@ -4,10 +4,22 @@ resource "azurerm_container_app" "gateway" {
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+
+
   template {
     container {
       name   = "gateway"
-      image  = "${azurerm_container_registry.acr.login_server}/gateway:latest"
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = 0.5
       memory = "1Gi"
 
@@ -53,5 +65,11 @@ resource "azurerm_container_app" "gateway" {
       percentage      = 100
       latest_revision = true
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image,
+    ]
   }
 }

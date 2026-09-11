@@ -5,6 +5,18 @@ resource "azurerm_container_app" "agent" {
   revision_mode                = "Single"
 
   secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+
+
+  secret {
     name  = "mongodb-uri"
     value = "${var.mongodb_base_uri}/agent"
   }
@@ -37,7 +49,7 @@ resource "azurerm_container_app" "agent" {
   template {
     container {
       name   = "agent"
-      image  = "${azurerm_container_registry.acr.login_server}/agent:latest"
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = 0.5
       memory = "1Gi"
       # --- Standard Variables ---
@@ -99,5 +111,11 @@ resource "azurerm_container_app" "agent" {
       percentage      = 100
       latest_revision = true
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image,
+    ]
   }
 }

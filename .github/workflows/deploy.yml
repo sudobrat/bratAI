@@ -137,14 +137,14 @@ jobs:
                   docker tag billing-service:latest brataiacr123.azurecr.io/billing:latest
                   docker push brataiacr123.azurecr.io/billing:latest
 
-            # --- RESTART APPS TO PULL NEW IMAGES ---
-            - name: Restart Container Apps
+            # --- UPDATE APPS WITH NEW IMAGES ---
+            - name: Update Container Apps
               run: |
-                  az containerapp revision restart -n gateway-service -g bratai-rg
-                  az containerapp revision restart -n auth-service -g bratai-rg
-                  az containerapp revision restart -n chat-service -g bratai-rg
-                  az containerapp revision restart -n agent-service -g bratai-rg
-                  az containerapp revision restart -n billing-service -g bratai-rg
+                  az containerapp update -n gateway-service -g bratai-rg --image brataiacr123.azurecr.io/gateway:latest
+                  az containerapp update -n auth-service -g bratai-rg --image brataiacr123.azurecr.io/auth:latest
+                  az containerapp update -n chat-service -g bratai-rg --image brataiacr123.azurecr.io/chat:latest
+                  az containerapp update -n agent-service -g bratai-rg --image brataiacr123.azurecr.io/agent:latest
+                  az containerapp update -n billing-service -g bratai-rg --image brataiacr123.azurecr.io/billing:latest
 
     deploy-frontend:
         name: "Deploy React Frontend"

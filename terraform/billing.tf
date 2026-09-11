@@ -5,6 +5,18 @@ resource "azurerm_container_app" "billing" {
   revision_mode                = "Single"
 
   secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+
+
+  secret {
     name  = "mongodb-uri"
     value = "${var.mongodb_base_uri}/billing"
   }
@@ -16,7 +28,7 @@ resource "azurerm_container_app" "billing" {
   template {
     container {
       name   = "billing"
-      image  = "${azurerm_container_registry.acr.login_server}/billing:latest"
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -50,5 +62,11 @@ resource "azurerm_container_app" "billing" {
       percentage      = 100
       latest_revision = true
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image,
+    ]
   }
 }
