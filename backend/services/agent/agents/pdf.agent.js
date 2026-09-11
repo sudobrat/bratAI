@@ -1,7 +1,7 @@
 import { getModel } from "../config/llmModels.js";
 import { generatePDF } from "../utils/generatePDF.js";
-import { uploadToS3 } from "../utils/uploadToS3.js";
-import { getFromS3 } from "../utils/getFromS3.js";
+import { uploadToBlob } from "../utils/uploadToBlob.js";
+import { getFromBlob } from "../utils/getFromBlob.js";
 import { deductCredits } from "../utils/deductCredits.js";
 import { checkAgentLimit } from "../config/agentLimit.js";
 
@@ -48,8 +48,8 @@ ${state.prompt}`;
     const pdfBuffer = await generatePDF(data);
     const filename = `pdf-${Date.now()}.pdf`;
 
-    await uploadToS3(filename, pdfBuffer, "application/pdf");
-    const downloadUrl = await getFromS3(filename, 1 * 10 * 60);
+    await uploadToBlob(filename, pdfBuffer, "application/pdf");
+    const downloadUrl = await getFromBlob(filename, 1 * 10 * 60);
 
     return {
       ...state,

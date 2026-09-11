@@ -1,7 +1,7 @@
 import { getModel } from "../config/llmModels.js";
 import { generatePPT } from "../utils/generatePPT.js";
-import { uploadToS3 } from "../utils/uploadToS3.js";
-import { getFromS3 } from "../utils/getFromS3.js";
+import { uploadToBlob } from "../utils/uploadToBlob.js";
+import { getFromBlob } from "../utils/getFromBlob.js";
 import { deductCredits } from "../utils/deductCredits.js";
 import { checkAgentLimit } from "../config/agentLimit.js";
 
@@ -52,12 +52,12 @@ ${state.prompt}`;
     const buffer = await ppt.write({ outputType: "nodebuffer" });
     const filename = `ppt-${Date.now()}.pptx`;
 
-    await uploadToS3(
+    await uploadToBlob(
       filename,
       buffer,
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     );
-    const downloadUrl = await getFromS3(filename, 1 * 10 * 60);
+    const downloadUrl = await getFromBlob(filename, 1 * 10 * 60);
 
     return {
       ...state,
