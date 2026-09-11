@@ -55,7 +55,7 @@ resource "azurerm_container_app" "gateway" {
       }
       env {
         name  = "REDIS_URL"
-        value = "redis://${azurerm_container_app.redis.ingress[0].fqdn}:6379"
+        value = "redis://redis-cache:6379"
       }
     }
   }
