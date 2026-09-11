@@ -37,19 +37,19 @@ resource "azurerm_container_app" "gateway" {
       # --- The Switchboard: Pointing to all internal services! ---
       env {
         name  = "AUTH_SERVICE"
-        value = "http://${azurerm_container_app.auth.ingress[0].fqdn}"
+        value = "https://${azurerm_container_app.auth.ingress[0].fqdn}"
       }
       env {
         name  = "CHAT_SERVICE"
-        value = "http://${azurerm_container_app.chat.ingress[0].fqdn}"
+        value = "https://${azurerm_container_app.chat.ingress[0].fqdn}"
       }
       env {
         name  = "AGENT_SERVICE"
-        value = "http://${azurerm_container_app.agent.ingress[0].fqdn}"
+        value = "https://${azurerm_container_app.agent.ingress[0].fqdn}"
       }
       env {
         name  = "BILLING_SERVICE"
-        value = "http://${azurerm_container_app.billing.ingress[0].fqdn}"
+        value = "https://${azurerm_container_app.billing.ingress[0].fqdn}"
       }
       env {
         name  = "REDIS_URL"
