@@ -37,9 +37,8 @@ resource "azurerm_container_app" "auth" {
         secret_name = "mongodb-uri"
       }
       env {
-        name = "REDIS_URL"
-        # Points to the internal FQDN of the Redis container app we created above
-        value = "redis://${azurerm_container_app.redis.latest_revision_fqdn}:6379"
+        name  = "REDIS_URL"
+        value = "redis://redis-cache:6379"
       }
     }
   }

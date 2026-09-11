@@ -63,15 +63,17 @@ resource "azurerm_container_app" "agent" {
       }
       env {
         name  = "AUTH_SERVICE"
-        value = "http://${azurerm_container_app.auth.latest_revision_fqdn}"
+        value = "https://${azurerm_container_app.auth.ingress[0].fqdn}"
       }
+
       env {
         name  = "CHAT_SERVICE"
-        value = "http://${azurerm_container_app.chat.latest_revision_fqdn}"
+        value = "https://${azurerm_container_app.chat.ingress[0].fqdn}"
       }
+
       env {
         name  = "REDIS_URL"
-        value = "redis://${azurerm_container_app.redis.latest_revision_fqdn}:6379"
+        value = "redis://redis-cache:6379"
       }
       env {
         name        = "MONGODB_URI"

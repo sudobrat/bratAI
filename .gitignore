@@ -44,3 +44,7 @@ serviceAccountKey.json
 sa-key.json
 firebase-adminsdk*.json
 *.pem
+
+.terraform/
+*.tfstate
+*.tfstate.*

@@ -50,7 +50,7 @@ resource "azurerm_container_app" "billing" {
       }
       env {
         name  = "AUTH_SERVICE"
-        value = "http://${azurerm_container_app.auth.latest_revision_fqdn}"
+        value = "https://${azurerm_container_app.auth.ingress[0].fqdn}"
       }
     }
   }
