@@ -1,185 +1,176 @@
 name: brat ai deployment
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    workflow_dispatch:
+        inputs:
+            action:
+                description: "Choose Terraform Action (apply to build, destroy to delete)"
+                required: true
+                default: "apply"
+                type: choice
+                options:
+                    - apply
+                    - destroy
 
 jobs:
-  deploy-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    terraform:
+        name: "Terraform Infrastructure"
+        runs-on: ubuntu-latest
 
-      - name: AWS configure
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+        outputs:
+            gateway_url: ${{ steps.tf-out.outputs.url }}
 
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        defaults:
+            run:
+                working-directory: ./terraform
 
-      - name: Build Gateway
-        run: |
-          docker build \
-          -f backend/gateway/Dockerfile \
-          -t gateway backend
-
-      - name: Tag Gateway
-        run: |
-          docker tag gateway:latest \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gateway:latest
-
-      - name: Push Gateway
-        run: |
-          docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gateway:latest
-
-      - name: Inject Firebase Credentials
-        run: |
-          # This creates the file dynamically in the runner
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > backend/services/auth/serviceAccountKey.json
-
-      - name: Build Auth Service
-        run: |
-          docker build \
-          -f backend/services/auth/Dockerfile \
-          -t auth-service backend
-
-      - name: Tag Auth Service
-        run: |
-          docker tag auth-service:latest \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/auth-service:latest
-
-      - name: Push Auth Service
-        run: |
-          docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/auth-service:latest
-
-      - name: Build Chat Service
-        run: |
-          docker build \
-          -f backend/services/chat/Dockerfile \
-          -t chat-service backend
-
-      - name: Tag Chat Service
-        run: |
-          docker tag chat-service:latest \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/chat-service:latest
-
-      - name: Push Chat Service
-        run: |
-          docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/chat-service:latest
-
-      - name: Build Agent Service
-        run: |
-          docker build \
-          -f backend/services/agent/Dockerfile \
-          -t agent-service backend
-
-      - name: Tag Agent Service
-        run: |
-          docker tag agent-service:latest \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/agent-service:latest
-
-      - name: Push Agent Service
-        run: |
-          docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/agent-service:latest
-
-      - name: Build Billing Service
-        run: |
-          docker build \
-          -f backend/services/billing/Dockerfile \
-          -t billing-service backend
-
-      - name: Tag Billing Service
-        run: |
-          docker tag billing-service:latest \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/billing-service:latest
-
-      - name: Push Billing Service
-        run: |
-          docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/billing-service:latest
-
-      - name: Deploy Gateway
-        run: |
-          aws ecs update-service \
-          --cluster ${{ secrets.ECS_CLUSTER }} \
-          --service ${{ secrets.GATEWAY_SERVICE}} \
-          --force-new-deployment
-
-      - name: Deploy Auth Service
-        run: |
-          aws ecs update-service \
-          --cluster ${{ secrets.ECS_CLUSTER }} \
-          --service ${{ secrets.AUTH_SERVICE}} \
-          --force-new-deployment
-
-      - name: Deploy Chat Service
-        run: |
-          aws ecs update-service \
-          --cluster ${{ secrets.ECS_CLUSTER }} \
-          --service ${{ secrets.CHAT_SERVICE}} \
-          --force-new-deployment
-
-      - name: Deploy Agent Service
-        run: |
-          aws ecs update-service \
-          --cluster ${{ secrets.ECS_CLUSTER }} \
-          --service ${{ secrets.AGENT_SERVICE}} \
-          --force-new-deployment
-
-      - name: Deploy Billing Service
-        run: |
-          aws ecs update-service \
-          --cluster ${{ secrets.ECS_CLUSTER }} \
-          --service ${{ secrets.BILLING_SERVICE}} \
-          --force-new-deployment
-
-  deploy-frontend:
-    needs: deploy-backend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build frontend
-        run: |
-          cd frontend 
-          npm install
-          npm run build
         env:
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_SERVER_URL: ${{ secrets.VITE_SERVER_URL }}
-          VITE_RAZORPAY_KEY_ID: ${{ secrets.VITE_RAZORPAY_KEY_ID }}
+            ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+            ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+            ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+            ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
-      - name: AWS configure
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+            TF_VAR_mongodb_base_uri: ${{ secrets.TF_VAR_MONGODB_BASE_URI }}
+            TF_VAR_razorpay_key_id: ${{ secrets.TF_VAR_RAZORPAY_KEY_ID }}
+            TF_VAR_razorpay_key_secret: ${{ secrets.TF_VAR_RAZORPAY_KEY_SECRET }}
+            TF_VAR_groq_api_key: ${{ secrets.TF_VAR_GROQ_API_KEY }}
+            TF_VAR_google_api_key: ${{ secrets.TF_VAR_GOOGLE_API_KEY }}
+            TF_VAR_tavily_api_key: ${{ secrets.TF_VAR_TAVILY_API_KEY }}
+            TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+            TF_VAR_qdrant_url: ${{ secrets.TF_VAR_QDRANT_URL }}
+            TF_VAR_qdrant_api_key: ${{ secrets.TF_VAR_QDRANT_API_KEY }}
 
-      - name: Upload to S3
-        run: |
-          aws s3 sync \
-          frontend/dist \
-          s3://${{ secrets.S3_BUCKET }} \
-          --delete
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
 
-      - name: CloudFront invalidation
-        run: |
-          aws cloudfront create-invalidation \
-          --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-          --paths "/*"
+            - name: Log into Azure
+              uses: azure/login@v2
+              with:
+                  creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v4
+
+            - name: Terraform Init
+              run: terraform init
+
+            - name: Terraform Apply
+              if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+              run: terraform apply -auto-approve
+
+            - name: Export Gateway URL
+              id: tf-out
+              if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+              run: echo "url=$(terraform output -raw gateway_url)" >> $GITHUB_OUTPUT
+
+            - name: Terraform Destroy
+              if: github.event.inputs.action == 'destroy'
+              run: terraform destroy -auto-approve
+
+    build-and-push:
+        name: "Build and Push Docker Images"
+        needs: terraform
+        runs-on: ubuntu-latest
+
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Log into Azure
+              uses: azure/login@v2
+              with:
+                  creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+            - name: Log into Azure Container Registry (ACR)
+              run: az acr login --name brataiacr123
+
+            # --- GATEWAY SERVICE ---
+            - name: Build Gateway
+              run: docker build -f backend/gateway/Dockerfile -t gateway backend
+            - name: Tag & Push Gateway
+              run: |
+                  docker tag gateway:latest brataiacr123.azurecr.io/gateway:latest
+                  docker push brataiacr123.azurecr.io/gateway:latest
+
+            # --- INJECT FIREBASE CREDENTIALS ---
+            - name: Inject Firebase Credentials
+              run: |
+                  # This creates the file dynamically in the runner
+                  echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > backend/services/auth/serviceAccountKey.json
+
+            # --- AUTH SERVICE ---
+            - name: Build Auth Service
+              run: docker build -f backend/services/auth/Dockerfile -t auth-service backend
+            - name: Tag & Push Auth Service
+              run: |
+                  docker tag auth-service:latest brataiacr123.azurecr.io/auth:latest
+                  docker push brataiacr123.azurecr.io/auth:latest
+
+            # --- CHAT SERVICE ---
+            - name: Build Chat Service
+              run: docker build -f backend/services/chat/Dockerfile -t chat-service backend
+            - name: Tag & Push Chat Service
+              run: |
+                  docker tag chat-service:latest brataiacr123.azurecr.io/chat:latest
+                  docker push brataiacr123.azurecr.io/chat:latest
+
+            # --- AGENT SERVICE ---
+            - name: Build Agent Service
+              run: docker build -f backend/services/agent/Dockerfile -t agent-service backend
+            - name: Tag & Push Agent Service
+              run: |
+                  docker tag agent-service:latest brataiacr123.azurecr.io/agent:latest
+                  docker push brataiacr123.azurecr.io/agent:latest
+
+            # --- BILLING SERVICE ---
+            - name: Build Billing Service
+              run: docker build -f backend/services/billing/Dockerfile -t billing-service backend
+            - name: Tag & Push Billing Service
+              run: |
+                  docker tag billing-service:latest brataiacr123.azurecr.io/billing:latest
+                  docker push brataiacr123.azurecr.io/billing:latest
+
+            # --- RESTART APPS TO PULL NEW IMAGES ---
+            - name: Restart Container Apps
+              run: |
+                  az containerapp revision restart -n gateway-service -g bratai-rg
+                  az containerapp revision restart -n auth-service -g bratai-rg
+                  az containerapp revision restart -n chat-service -g bratai-rg
+                  az containerapp revision restart -n agent-service -g bratai-rg
+                  az containerapp revision restart -n billing-service -g bratai-rg
+
+    deploy-frontend:
+        name: "Deploy React Frontend"
+        needs: terraform
+        runs-on: ubuntu-latest
+
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            # We need the Gateway URL that Terraform generated so the frontend can talk to it!
+            - name: Get Frontend ENV Variables
+              run: |
+                  echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> $GITHUB_ENV
+                  echo "VITE_RAZORPAY_KEY_ID=${{ secrets.TF_VAR_RAZORPAY_KEY_ID }}" >> $GITHUB_ENV
+                  echo "VITE_SERVER_URL=${{ needs.terraform.outputs.gateway_url }}" >> $GITHUB_ENV
+
+            # Azure handles the npm install, npm run build, and the uploading for us!
+            - name: Build And Deploy to Azure Static Web Apps
+              uses: Azure/static-web-apps-deploy@v1
+              with:
+                  azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+                  repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  action: "upload"
+                  app_location: "/frontend" # Where your React app lives
+                  api_location: "" # Leave empty since we built our own backend
+                  output_location: "dist" # The folder Vite outputs to
