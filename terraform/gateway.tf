@@ -27,10 +27,10 @@ resource "azurerm_container_app" "gateway" {
         name  = "PORT"
         value = "8000"
       }
-            # Terraform pulls the URL dynamically from the frontend we just created!
+      # Terraform passes the production custom domain to the backend for CORS!
       env {
         name  = "FRONTEND_URL"
-        value = "https://${azurerm_static_web_app.frontend.default_host_name}"
+        value = "https://bratai.bharatrajsingal.online"
       }
 
       
